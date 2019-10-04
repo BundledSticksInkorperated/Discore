@@ -31,7 +31,7 @@ dotnet_style_null_propagation = true:none
 ## CSharp rules ##
 # Use "var"
 csharp_style_var_for_built_in_types = false:warning
-csharp_style_var_when_type_is_apparent = false:suggestion
+csharp_style_var_when_type_is_apparent = true:suggestion
 csharp_style_var_elsewhere = false:suggestion
 
 # Prefer constructs to have an expression body
