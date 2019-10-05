@@ -1,6 +1,7 @@
 ﻿using Discore.Http.Internal;
-using System;
 using System.Net;
+
+#nullable enable
 
 namespace Discore.Http
 {
@@ -17,18 +18,12 @@ namespace Discore.Http
         /// The maximum number of requests that can be made until the reset time.
         /// <para>Note: Only set if not a global rate limit.</para>
         /// </summary>
-        public int Limit { get; }
+        public int? Limit { get; }
         /// <summary>
         /// Epoch time (seconds since 00:00:00 UTC on January 1, 1970) at which the rate limit resets.
         /// <para>Note: Only set if not a global rate limit.</para>
         /// </summary>
-        [Obsolete("Please use ResetHighPrecision instead for millisecond precision.")]
-        public ulong Reset { get; }
-        /// <summary>
-        /// Epoch time (seconds since 00:00:00 UTC on January 1, 1970) at which the rate limit resets.
-        /// <para>Note: Only set if not a global rate limit.</para>
-        /// </summary>
-        public double ResetHighPrecision { get; }
+        public double? Reset { get; }
         /// <summary>
         /// The time in milliseconds that needs to be waited before sending another request.
         /// </summary>
@@ -40,12 +35,10 @@ namespace Discore.Http
         {
             IsGlobal = rateLimitHeaders.IsGlobal;
             Limit = rateLimitHeaders.Limit;
-            ResetHighPrecision = rateLimitHeaders.Reset;
+            Reset = rateLimitHeaders.Reset;
             RetryAfter = rateLimitHeaders.RetryAfter.GetValueOrDefault(); // Should always be set, but just in case.
-
-#pragma warning disable CS0618 // Type or member is obsolete
-            Reset = (ulong)rateLimitHeaders.Reset;
-#pragma warning restore CS0618 // Type or member is obsolete
         }
     }
 }
+
+#nullable restore
