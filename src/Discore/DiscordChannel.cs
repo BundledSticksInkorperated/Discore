@@ -1,5 +1,4 @@
-﻿using Discore.Http;
-using System.Threading.Tasks;
+﻿#nullable enable
 
 namespace Discore
 {
@@ -21,29 +20,10 @@ namespace Discore
             || ChannelType == DiscordChannelType.GuildVoice
             || ChannelType == DiscordChannelType.GuildCategory;
 
-        DiscordHttpClient http;
-
-        internal DiscordChannel(DiscordHttpClient http, DiscordChannelType type)
+        private protected DiscordChannel(Snowflake id, DiscordChannelType type)
+            : base(id)
         {
-            this.http = http;
             ChannelType = type;
-        }
-
-        internal DiscordChannel(DiscordHttpClient http, DiscordApiData data, DiscordChannelType type)
-            : base(data)
-        {
-            this.http = http;
-            ChannelType = type;
-        }
-
-        /// <summary>
-        /// Deletes/closes this channel.
-        /// <para>Requires <see cref="DiscordPermission.ManageChannels"/> if this is a guild channel.</para>
-        /// </summary>
-        /// <exception cref="DiscordHttpApiException"></exception>
-        public Task<DiscordChannel> Delete()
-        {
-            return http.DeleteChannel(Id);
         }
 
         public override string ToString()
@@ -52,3 +32,5 @@ namespace Discore
         }
     }
 }
+
+#nullable restore

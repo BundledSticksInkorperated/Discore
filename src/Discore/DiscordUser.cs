@@ -1,7 +1,6 @@
-﻿using Discore.WebSocket;
-using System;
+﻿using System.Text.Json;
 
-#pragma warning disable CS0618 // Type or member is obsolete
+#nullable enable
 
 namespace Discore
 {
@@ -20,7 +19,7 @@ namespace Discore
         /// <summary>
         /// Gets the user's avatar or null if the user does not have an avatar.
         /// </summary>
-        public DiscordCdnUrl Avatar { get; }
+        public DiscordCdnUrl? Avatar { get; }
 
         /// <summary>
         /// Gets whether this account belongs to an OAuth application.
@@ -30,64 +29,62 @@ namespace Discore
         /// <summary>
         /// Gets whether this account has two-factor authentication enabled.
         /// </summary>
-        [Obsolete("This information is not available to bots.")]
-        public bool HasTwoFactorAuth { get; }
+        public bool? HasTwoFactorAuth { get; }
 
         /// <summary>
         /// Gets whether the email on this account is verified.
         /// </summary>
-        [Obsolete("This information is not available to bots.")]
-        public bool IsVerified { get; }
+        public bool? IsVerified { get; }
 
         /// <summary>
         /// Gets the email (if available) of this account.
         /// </summary>
-        [Obsolete("This information is not available to bots.")]
-        public string Email { get; }
+        public string? Email { get; }
 
-        /// <summary>
-        /// Gets whether this is a webhook user.
-        /// </summary>
-        public bool IsWebhookUser { get; }
+        // TODO: Add flags, premium_type, locale
 
-        internal DiscordUser(MutableUser user)
+        private DiscordUser(Snowflake id,
+            string username, 
+            string discriminator, 
+            DiscordCdnUrl? avatar, 
+            bool isBot, 
+            bool? hasTwoFactorAuth, 
+            bool? isVerified, 
+            string? email)
+            : base(id)
         {
-            Id = user.Id;
-            IsWebhookUser = user.IsWebhookUser;
-
-            Username = user.Username;
-            Discriminator = user.Discriminator;
-            IsBot = user.IsBot;
-            HasTwoFactorAuth = user.HasTwoFactorAuth;
-            IsVerified = user.IsVerified;
-            Email = user.Email;
-
-            if (user.Avatar != null)
-                Avatar = DiscordCdnUrl.ForUserAvatar(user.Id, user.Avatar);
-        }
-
-        internal DiscordUser(bool isWebhookUser, DiscordApiData data)
-            : base(data)
-        {
-            IsWebhookUser = isWebhookUser;
-
-            Username = data.GetString("username");
-            Discriminator = data.GetString("discriminator");
-            IsBot = data.GetBoolean("bot") ?? false;
-            HasTwoFactorAuth = data.GetBoolean("mfa_enabled") ?? false;
-            IsVerified = data.GetBoolean("verified") ?? false;
-            Email = data.GetString("email");
-
-            string avatarHash = data.GetString("avatar");
-            if (avatarHash != null)
-                Avatar = DiscordCdnUrl.ForUserAvatar(Id, avatarHash);
+            Username = username;
+            Discriminator = discriminator;
+            Avatar = avatar;
+            IsBot = isBot;
+            HasTwoFactorAuth = hasTwoFactorAuth;
+            IsVerified = isVerified;
+            Email = email;
         }
 
         public override string ToString()
         {
             return Username;
         }
+
+        internal static DiscordUser FromJson(JsonElement json)
+        {
+            Snowflake id = json.GetProperty("id").GetUInt64();
+
+            string? avatarHash = json.GetProperty("avatar").GetString();
+            DiscordCdnUrl? avatar = avatarHash != null ? DiscordCdnUrl.ForUserAvatar(id, avatarHash) : null;
+
+            return new DiscordUser(
+                id: id,
+                username: json.GetProperty("username").GetString(),
+                discriminator: json.GetProperty("discriminator").GetString(),
+                avatar: avatar,
+                isBot: json.GetPropertyOrNull("bot")?.GetBoolean() ?? false,
+                hasTwoFactorAuth: json.GetPropertyOrNull("mfa_enabled")?.GetBoolean(),
+                isVerified: json.GetPropertyOrNull("verified")?.GetBoolean(),
+                email: json.GetPropertyOrNull("email")?.GetString());
+        }
     }
 }
 
-#pragma warning restore CS0618 // Type or member is obsolete
+#nullable restore

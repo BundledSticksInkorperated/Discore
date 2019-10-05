@@ -1,4 +1,8 @@
-﻿namespace Discore
+﻿using System.Text.Json;
+
+#nullable enable
+
+namespace Discore
 {
     public sealed class DiscordAttachment : DiscordIdEntity
     {
@@ -19,28 +23,49 @@
         /// </summary>
         public string ProxyUrl { get; }
         /// <summary>
-        /// Gets the pixel-width of this attachment.
+        /// Gets the pixel-width of this attachment if the attachment is an image.
         /// </summary>
         public int? Width { get; }
         /// <summary>
-        /// Gets the pixel-height of this attachment.
+        /// Gets the pixel-height of this attachment if the attachment is an image.
         /// </summary>
         public int? Height { get; }
 
-        internal DiscordAttachment(DiscordApiData data)
-            : base(data)
+        private DiscordAttachment(
+            Snowflake id,
+            string fileName,
+            int size,
+            string url,
+            string proxyUrl,
+            int? width,
+            int? height)
+            : base(id)
         {
-            FileName = data.GetString("filename");
-            Size     = data.GetInteger("size").Value;
-            Url      = data.GetString("url");
-            ProxyUrl = data.GetString("proxy_url");
-            Width    = data.GetInteger("width");
-            Height   = data.GetInteger("height");
+            FileName = fileName;
+            Size = size;
+            Url = url;
+            ProxyUrl = proxyUrl;
+            Width = width;
+            Height = height;
         }
 
         public override string ToString()
         {
             return FileName;
         }
+
+        internal static DiscordAttachment FromJson(JsonElement json)
+        {
+            return new DiscordAttachment(
+                id: json.GetProperty("id").GetUInt64(),
+                fileName: json.GetProperty("filename").GetString(),
+                size: json.GetProperty("size").GetInt32(),
+                url: json.GetProperty("url").GetString(),
+                proxyUrl: json.GetProperty("proxy_url").GetString(),
+                width: json.GetProperty("width").GetInt32OrNull(),
+                height: json.GetProperty("height").GetInt32OrNull());
+        }
     }
 }
+
+#nullable restore

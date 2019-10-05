@@ -1,4 +1,8 @@
-﻿namespace Discore
+﻿#nullable enable
+
+using System.Text.Json;
+
+namespace Discore
 {
     public class DiscordChannelMention : DiscordIdEntity
     {
@@ -17,12 +21,23 @@
         /// </summary>
         public string Name { get; }
 
-        internal DiscordChannelMention(DiscordApiData data)
-            : base(data)
+        private DiscordChannelMention(Snowflake id, Snowflake guildId, DiscordChannelType type, string name)
+            : base(id)
         {
-            GuildId = data.GetSnowflake("guild_id").GetValueOrDefault();
-            Type = (DiscordChannelType)(data.GetInteger("type") ?? 0);
-            Name = data.GetString("name");
+            GuildId = guildId;
+            Type = type;
+            Name = name;
+        }
+
+        internal static DiscordChannelMention FromJson(JsonElement json)
+        {
+            return new DiscordChannelMention(
+                id: json.GetProperty("id").GetUInt64(),
+                guildId: json.GetProperty("guild_id").GetUInt64(),
+                type: (DiscordChannelType)json.GetProperty("type").GetInt32(),
+                name: json.GetProperty("name").GetString());
         }
     }
 }
+
+#nullable restore

@@ -1,4 +1,6 @@
-﻿namespace Discore
+﻿#nullable enable
+
+namespace Discore
 {
     /// <summary>
     /// A structure representing color data from the Discord API.
@@ -70,3 +72,5 @@
         }
     }
 }
+
+#nullable restore
