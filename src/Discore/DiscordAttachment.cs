@@ -57,7 +57,7 @@ namespace Discore
         internal static DiscordAttachment FromJson(JsonElement json)
         {
             return new DiscordAttachment(
-                id: json.GetProperty("id").GetUInt64(),
+                id: json.GetProperty("id").GetSnowflake(),
                 fileName: json.GetProperty("filename").GetString(),
                 size: json.GetProperty("size").GetInt32(),
                 url: json.GetProperty("url").GetString(),

@@ -42,9 +42,9 @@ namespace Discore
             var recipient = DiscordUser.FromJson(recipientData);
 
             return new DiscordDMChannel(
-                id: json.GetProperty("id").GetUInt64(),
+                id: json.GetProperty("id").GetSnowflake(),
                 recipient: recipient,
-                lastMessageId: json.GetPropertyOrNull("last_message_id")?.GetUInt64OrNull());
+                lastMessageId: json.GetPropertyOrNull("last_message_id")?.GetSnowflakeOrNull());
         }
     }
 }

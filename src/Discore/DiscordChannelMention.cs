@@ -32,8 +32,8 @@ namespace Discore
         internal static DiscordChannelMention FromJson(JsonElement json)
         {
             return new DiscordChannelMention(
-                id: json.GetProperty("id").GetUInt64(),
-                guildId: json.GetProperty("guild_id").GetUInt64(),
+                id: json.GetProperty("id").GetSnowflake(),
+                guildId: json.GetProperty("guild_id").GetSnowflake(),
                 type: (DiscordChannelType)json.GetProperty("type").GetInt32(),
                 name: json.GetProperty("name").GetString());
         }
