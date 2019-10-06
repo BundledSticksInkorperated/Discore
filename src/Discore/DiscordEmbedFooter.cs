@@ -1,4 +1,8 @@
-﻿namespace Discore
+﻿#nullable enable
+
+using System.Text.Json;
+
+namespace Discore
 {
     public sealed class DiscordEmbedFooter
     {
@@ -8,20 +12,30 @@
         public string Text { get; }
 
         /// <summary>
-        /// Gets the url of the footer icon (only http(s)).
+        /// Gets the url of the footer icon.
         /// </summary>
-        public string IconUrl { get; }
+        public string? IconUrl { get; }
 
         /// <summary>
         /// Gets a proxied url of the footer icon.
         /// </summary>
-        public string ProxyIconUrl { get; }
+        public string? ProxyIconUrl { get; }
 
-        internal DiscordEmbedFooter(DiscordApiData data)
+        private DiscordEmbedFooter(string text, string? iconUrl, string? proxyIconUrl)
         {
-            Text = data.GetString("text");
-            IconUrl = data.GetString("icon_url");
-            ProxyIconUrl = data.GetString("proxy_icon_url");
+            Text = text;
+            IconUrl = iconUrl;
+            ProxyIconUrl = proxyIconUrl;
+        }
+
+        internal static DiscordEmbedFooter FromJson(JsonElement json)
+        {
+            return new DiscordEmbedFooter(
+                text: json.GetProperty("text").GetString(),
+                iconUrl: json.GetPropertyOrNull("icon_url")?.GetString(),
+                proxyIconUrl: json.GetPropertyOrNull("proxy_icon_url")?.GetString());
         }
     }
 }
+
+#nullable restore

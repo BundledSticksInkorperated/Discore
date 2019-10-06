@@ -1,4 +1,8 @@
-﻿namespace Discore
+﻿#nullable enable
+
+using System.Text.Json;
+
+namespace Discore
 {
     public sealed class DiscordEmbedField
     {
@@ -17,16 +21,26 @@
         /// </summary>
         public bool IsInline { get; }
 
-        internal DiscordEmbedField(DiscordApiData data)
+        private DiscordEmbedField(string name, string value, bool isInline)
         {
-            Name = data.GetString("name");
-            Value = data.GetString("value");
-            IsInline = data.GetBoolean("inline").Value;
+            Name = name;
+            Value = value;
+            IsInline = isInline;
         }
 
         public override string ToString()
         {
             return Name;
         }
+
+        internal static DiscordEmbedField FromJson(JsonElement json)
+        {
+            return new DiscordEmbedField(
+                json.GetProperty("name").GetString(),
+                json.GetProperty("value").GetString(),
+                json.GetPropertyOrNull("inline")?.GetBoolean() ?? false);
+        }
     }
 }
+
+#nullable restore

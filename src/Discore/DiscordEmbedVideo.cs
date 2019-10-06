@@ -1,32 +1,46 @@
-﻿namespace Discore
+﻿#nullable enable
+
+using System.Text.Json;
+
+namespace Discore
 {
     public sealed class DiscordEmbedVideo
     {
         /// <summary>
         /// Gets the source url of the video.
         /// </summary>
-        public string Url { get; }
+        public string? Url { get; }
 
         /// <summary>
         /// Gets the width of the video.
         /// </summary>
-        public int Width { get; }
+        public int? Width { get; }
 
         /// <summary>
         /// Gets the height of the video.
         /// </summary>
-        public int Height { get; }
+        public int? Height { get; }
 
-        internal DiscordEmbedVideo(DiscordApiData data)
+        private DiscordEmbedVideo(string? url, int? width, int? height)
         {
-            Url = data.GetString("url");
-            Width = data.GetInteger("width").Value;
-            Height = data.GetInteger("height").Value;
+            Url = url;
+            Width = width;
+            Height = height;
         }
 
         public override string ToString()
         {
-            return Url;
+            return Url ?? base.ToString();
+        }
+
+        internal static DiscordEmbedVideo FromJson(JsonElement json)
+        {
+            return new DiscordEmbedVideo(
+                url: json.GetPropertyOrNull("url")?.GetString(),
+                width: json.GetPropertyOrNull("width")?.GetInt32(),
+                height: json.GetPropertyOrNull("height")?.GetInt32());
         }
     }
 }
+
+#nullable restore
