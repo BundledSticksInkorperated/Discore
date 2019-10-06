@@ -1,4 +1,7 @@
 ﻿using System.Collections.Generic;
+using System.Text.Json;
+
+#nullable enable
 
 namespace Discore
 {
@@ -9,13 +12,13 @@ namespace Discore
         /// </summary>
         public string Name { get; }
         /// <summary>
-        /// Gets the IDs of associated roles with this emoji.
+        /// Gets the IDs of the roles that this emoji is whitelisted to.
         /// </summary>
         public IReadOnlyList<Snowflake> RoleIds { get; }
         /// <summary>
-        /// Gets the ID of the user that created this emoji.
+        /// Gets the user that created this emoji.
         /// </summary>
-        public Snowflake? UserId { get; }
+        public DiscordUser User { get; }
         /// <summary>
         /// Gets whether or not colons are required around the emoji name to use it.
         /// </summary>
@@ -29,27 +32,47 @@ namespace Discore
         /// </summary>
         public bool IsAnimated { get; }
 
-        internal DiscordEmoji(DiscordApiData data)
-            : base(data)
+        private DiscordEmoji(
+            Snowflake id,
+            string name, 
+            IReadOnlyList<Snowflake> roleIds, 
+            DiscordUser user, 
+            bool requireColons, 
+            bool isManaged, 
+            bool isAnimated)
+            : base(id)
         {
-            Name = data.GetString("name");
-            UserId = data.LocateSnowflake("user.id");
-            RequireColons = data.GetBoolean("require_colons") ?? false;
-            IsManaged = data.GetBoolean("managed") ?? false;
-            IsAnimated = data.GetBoolean("animated") ?? false;
-
-            IList<DiscordApiData> roles = data.GetArray("roles");
-            Snowflake[] roleIds = new Snowflake[roles.Count];
-
-            for (int i = 0; i < roleIds.Length; i++)
-                roleIds[i] = (roles[i].ToSnowflake().Value);
-            
+            Name = name;
             RoleIds = roleIds;
+            User = user;
+            RequireColons = requireColons;
+            IsManaged = isManaged;
+            IsAnimated = isAnimated;
         }
 
         public override string ToString()
         {
             return Name;
         }
+
+        internal static DiscordEmoji FromJson(JsonElement json)
+        {
+            JsonElement rolesData = json.GetProperty("roles");
+            var roleIds = new Snowflake[rolesData.GetArrayLength()];
+
+            for (int i = 0; i < roleIds.Length; i++)
+                roleIds[i] = rolesData[i].GetSnowflake();
+
+            return new DiscordEmoji(
+                id: json.GetProperty("id").GetSnowflake(),
+                name: json.GetProperty("name").GetString(),
+                roleIds: roleIds,
+                user: DiscordUser.FromJson(json.GetProperty("user")),
+                requireColons: json.GetProperty("require_colons").GetBoolean(),
+                isManaged: json.GetProperty("managed").GetBoolean(),
+                isAnimated: json.GetProperty("animated").GetBoolean());
+        }
     }
 }
+
+#nullable restore
