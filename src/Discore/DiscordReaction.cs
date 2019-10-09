@@ -1,4 +1,8 @@
-﻿namespace Discore
+﻿#nullable enable
+
+using System.Text.Json;
+
+namespace Discore
 {
     public sealed class DiscordReaction
     {
@@ -17,14 +21,11 @@
         /// </summary>
         public DiscordReactionEmoji Emoji { get; }
 
-        internal DiscordReaction(DiscordApiData data)
+        internal DiscordReaction(JsonElement json)
         {
-            Count = data.GetInteger("count").Value;
-            Me = data.GetBoolean("me").Value;
-
-            DiscordApiData emojiData = data.Get("emoji");
-            if (emojiData != null)
-                Emoji = new DiscordReactionEmoji(emojiData);
+            Count = json.GetProperty("count").GetInt32();
+            Me = json.GetProperty("me").GetBoolean();
+            Emoji = new DiscordReactionEmoji(json.GetProperty("emoji"));
         }
 
         public override string ToString()
@@ -33,3 +34,5 @@
         }
     }
 }
+
+#nullable restore

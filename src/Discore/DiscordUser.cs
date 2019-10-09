@@ -26,6 +26,8 @@ namespace Discore
         /// </summary>
         public bool IsBot { get; }
 
+        // TODO: Consider renaming HasTwoFactorAuth to MfaEnabled
+
         /// <summary>
         /// Gets whether this account has two-factor authentication enabled.
         /// </summary>
@@ -43,46 +45,23 @@ namespace Discore
 
         // TODO: Add flags, premium_type, locale
 
-        private DiscordUser(Snowflake id,
-            string username, 
-            string discriminator, 
-            DiscordCdnUrl? avatar, 
-            bool isBot, 
-            bool? hasTwoFactorAuth, 
-            bool? isVerified, 
-            string? email)
-            : base(id)
+        internal DiscordUser(JsonElement json)
+            : base(json)
         {
-            Username = username;
-            Discriminator = discriminator;
-            Avatar = avatar;
-            IsBot = isBot;
-            HasTwoFactorAuth = hasTwoFactorAuth;
-            IsVerified = isVerified;
-            Email = email;
+            string? avatarHash = json.GetProperty("avatar").GetString();
+            Avatar = avatarHash != null ? DiscordCdnUrl.ForUserAvatar(Id, avatarHash) : null;
+
+            Username = json.GetProperty("username").GetString();
+            Discriminator = json.GetProperty("discriminator").GetString();
+            IsBot = json.GetPropertyOrNull("bot")?.GetBoolean() ?? false;
+            HasTwoFactorAuth = json.GetPropertyOrNull("mfa_enabled")?.GetBoolean();
+            IsVerified = json.GetPropertyOrNull("verified")?.GetBoolean();
+            Email = json.GetPropertyOrNull("email")?.GetString();
         }
 
         public override string ToString()
         {
             return Username;
-        }
-
-        internal static DiscordUser FromJson(JsonElement json)
-        {
-            Snowflake id = json.GetProperty("id").GetUInt64();
-
-            string? avatarHash = json.GetProperty("avatar").GetString();
-            DiscordCdnUrl? avatar = avatarHash != null ? DiscordCdnUrl.ForUserAvatar(id, avatarHash) : null;
-
-            return new DiscordUser(
-                id: id,
-                username: json.GetProperty("username").GetString(),
-                discriminator: json.GetProperty("discriminator").GetString(),
-                avatar: avatar,
-                isBot: json.GetPropertyOrNull("bot")?.GetBoolean() ?? false,
-                hasTwoFactorAuth: json.GetPropertyOrNull("mfa_enabled")?.GetBoolean(),
-                isVerified: json.GetPropertyOrNull("verified")?.GetBoolean(),
-                email: json.GetPropertyOrNull("email")?.GetString());
         }
     }
 }

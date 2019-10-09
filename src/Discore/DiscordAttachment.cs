@@ -31,39 +31,20 @@ namespace Discore
         /// </summary>
         public int? Height { get; }
 
-        private DiscordAttachment(
-            Snowflake id,
-            string fileName,
-            int size,
-            string url,
-            string proxyUrl,
-            int? width,
-            int? height)
-            : base(id)
+        internal DiscordAttachment(JsonElement json)
+            : base(json)
         {
-            FileName = fileName;
-            Size = size;
-            Url = url;
-            ProxyUrl = proxyUrl;
-            Width = width;
-            Height = height;
+            FileName = json.GetProperty("filename").GetString();
+            Size = json.GetProperty("size").GetInt32();
+            Url = json.GetProperty("url").GetString();
+            ProxyUrl = json.GetProperty("proxy_url").GetString();
+            Width = json.GetProperty("width").GetInt32OrNull();
+            Height = json.GetProperty("height").GetInt32OrNull();
         }
 
         public override string ToString()
         {
             return FileName;
-        }
-
-        internal static DiscordAttachment FromJson(JsonElement json)
-        {
-            return new DiscordAttachment(
-                id: json.GetProperty("id").GetSnowflake(),
-                fileName: json.GetProperty("filename").GetString(),
-                size: json.GetProperty("size").GetInt32(),
-                url: json.GetProperty("url").GetString(),
-                proxyUrl: json.GetProperty("proxy_url").GetString(),
-                width: json.GetProperty("width").GetInt32OrNull(),
-                height: json.GetProperty("height").GetInt32OrNull());
         }
     }
 }

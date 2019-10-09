@@ -26,26 +26,17 @@ namespace Discore
         /// </summary>
         public int? Height { get; }
 
-        private DiscordEmbedThumbnail(string? url, string? proxyUrl, int? width, int? height)
+        internal DiscordEmbedThumbnail(JsonElement json)
         {
-            Url = url;
-            ProxyUrl = proxyUrl;
-            Width = width;
-            Height = height;
+            Url = json.GetPropertyOrNull("url")?.GetString();
+            ProxyUrl = json.GetPropertyOrNull("proxy_url")?.GetString();
+            Width = json.GetPropertyOrNull("width")?.GetInt32();
+            Height = json.GetPropertyOrNull("height")?.GetInt32();
         }
 
         public override string ToString()
         {
             return Url ?? base.ToString();
-        }
-
-        internal static DiscordEmbedThumbnail FromJson(JsonElement json)
-        {
-            return new DiscordEmbedThumbnail(
-                url: json.GetPropertyOrNull("url")?.GetString(),
-                proxyUrl: json.GetPropertyOrNull("proxy_url")?.GetString(),
-                width: json.GetPropertyOrNull("width")?.GetInt32(),
-                height: json.GetPropertyOrNull("height")?.GetInt32());
         }
     }
 }

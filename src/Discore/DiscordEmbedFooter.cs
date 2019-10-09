@@ -21,19 +21,11 @@ namespace Discore
         /// </summary>
         public string? ProxyIconUrl { get; }
 
-        private DiscordEmbedFooter(string text, string? iconUrl, string? proxyIconUrl)
+        internal DiscordEmbedFooter(JsonElement json)
         {
-            Text = text;
-            IconUrl = iconUrl;
-            ProxyIconUrl = proxyIconUrl;
-        }
-
-        internal static DiscordEmbedFooter FromJson(JsonElement json)
-        {
-            return new DiscordEmbedFooter(
-                text: json.GetProperty("text").GetString(),
-                iconUrl: json.GetPropertyOrNull("icon_url")?.GetString(),
-                proxyIconUrl: json.GetPropertyOrNull("proxy_icon_url")?.GetString());
+            Text = json.GetProperty("text").GetString();
+            IconUrl = json.GetPropertyOrNull("icon_url")?.GetString();
+            ProxyIconUrl = json.GetPropertyOrNull("proxy_icon_url")?.GetString());
         }
     }
 }

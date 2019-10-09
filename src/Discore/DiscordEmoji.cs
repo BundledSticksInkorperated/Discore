@@ -32,45 +32,27 @@ namespace Discore
         /// </summary>
         public bool IsAnimated { get; }
 
-        private DiscordEmoji(
-            Snowflake id,
-            string name, 
-            IReadOnlyList<Snowflake> roleIds, 
-            DiscordUser user, 
-            bool requireColons, 
-            bool isManaged, 
-            bool isAnimated)
-            : base(id)
+        internal DiscordEmoji(JsonElement json)
+            : base(json)
         {
-            Name = name;
-            RoleIds = roleIds;
-            User = user;
-            RequireColons = requireColons;
-            IsManaged = isManaged;
-            IsAnimated = isAnimated;
-        }
+            Name = json.GetProperty("name").GetString();
+            User = new DiscordUser(json.GetProperty("user"));
+            RequireColons = json.GetProperty("require_colons").GetBoolean();
+            IsManaged = json.GetProperty("managed").GetBoolean();
+            IsAnimated = json.GetProperty("animated").GetBoolean();
 
-        public override string ToString()
-        {
-            return Name;
-        }
-
-        internal static DiscordEmoji FromJson(JsonElement json)
-        {
             JsonElement rolesData = json.GetProperty("roles");
             var roleIds = new Snowflake[rolesData.GetArrayLength()];
 
             for (int i = 0; i < roleIds.Length; i++)
                 roleIds[i] = rolesData[i].GetSnowflake();
 
-            return new DiscordEmoji(
-                id: json.GetProperty("id").GetSnowflake(),
-                name: json.GetProperty("name").GetString(),
-                roleIds: roleIds,
-                user: DiscordUser.FromJson(json.GetProperty("user")),
-                requireColons: json.GetProperty("require_colons").GetBoolean(),
-                isManaged: json.GetProperty("managed").GetBoolean(),
-                isAnimated: json.GetProperty("animated").GetBoolean());
+            RoleIds = roleIds;
+        }
+
+        public override string ToString()
+        {
+            return Name;
         }
     }
 }

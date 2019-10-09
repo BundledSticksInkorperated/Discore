@@ -1,5 +1,4 @@
-﻿using Discore.Http;
-using System.Threading.Tasks;
+﻿using System.Text.Json;
 
 namespace Discore
 {
@@ -12,32 +11,18 @@ namespace Discore
         /// <summary>
         /// Gets the embed channel ID.
         /// </summary>
-        public Snowflake ChannelId { get; }
+        public Snowflake? ChannelId { get; }
         /// <summary>
         /// Gets the ID of the guild this embed is for.
         /// </summary>
         public Snowflake GuildId { get; }
 
-        DiscordHttpClient http;
-
-        internal DiscordGuildEmbed(DiscordHttpClient http, Snowflake guildId, DiscordApiData data)
+        internal DiscordGuildEmbed(Snowflake guildId, JsonElement json)
         {
-            this.http = http;
-
             GuildId = guildId;
 
-            Enabled = data.GetBoolean("enabled").Value;
-            ChannelId = data.GetSnowflake("channel_id").Value;
-        }
-
-        /// <summary>
-        /// Modifies the properties of this guild embed.
-        /// <para>Requires <see cref="DiscordPermission.ManageGuild"/>.</para>
-        /// </summary>
-        /// <exception cref="DiscordHttpApiException"></exception>
-        public Task<DiscordGuildEmbed> Modify(ModifyGuildEmbedOptions options)
-        {
-            return http.ModifyGuildEmbed(GuildId, options);
+            Enabled = json.GetProperty("enabled").GetBoolean();
+            ChannelId = json.GetProperty("channel_id").GetSnowflakeOrNull();
         }
     }
 }

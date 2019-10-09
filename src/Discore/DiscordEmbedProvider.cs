@@ -18,22 +18,15 @@ namespace Discore
         /// </summary>
         public string? Url { get; }
 
-        private DiscordEmbedProvider(string? name, string? url)
+        internal DiscordEmbedProvider(JsonElement json)
         {
-            Name = name;
-            Url = url;
+            Name = json.GetPropertyOrNull("name")?.GetString();
+            Url = json.GetPropertyOrNull("url")?.GetString();
         }
 
         public override string ToString()
         {
             return Name ?? base.ToString();
-        }
-
-        internal static DiscordEmbedProvider FromJson(JsonElement json)
-        {
-            return new DiscordEmbedProvider(
-                name: json.GetPropertyOrNull("name")?.GetString(),
-                url: json.GetPropertyOrNull("url")?.GetString());
         }
     }
 }

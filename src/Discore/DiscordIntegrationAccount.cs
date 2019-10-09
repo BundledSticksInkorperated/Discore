@@ -1,4 +1,8 @@
-﻿namespace Discore
+﻿#nullable enable
+
+using System.Text.Json;
+
+namespace Discore
 {
     /// <summary>
     /// The account of an integration.
@@ -15,10 +19,10 @@
         /// </summary>
         public string Name { get; }
 
-        internal DiscordIntegrationAccount(DiscordApiData data)
+        internal DiscordIntegrationAccount(JsonElement json)
         {
-            Id = data.GetString("id");
-            Name = data.GetString("name");
+            Id = json.GetProperty("id").GetString();
+            Name = json.GetProperty("name").GetString();
         }
 
         /// <summary>
@@ -30,3 +34,5 @@
         }
     }
 }
+
+#nullable restore

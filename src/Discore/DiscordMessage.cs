@@ -1,7 +1,8 @@
-﻿using Discore.Http;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Threading.Tasks;
+using System.Text.Json;
+
+#nullable enable
 
 namespace Discore
 {
@@ -17,6 +18,10 @@ namespace Discore
         /// </summary>
         public Snowflake ChannelId { get; }
         /// <summary>
+        /// Gets the ID of the guild this message is in.
+        /// </summary>
+        public Snowflake? GuildId { get; }
+        /// <summary>
         /// Gets the author of this message.
         /// </summary>
         public DiscordUser Author { get; }
@@ -25,7 +30,7 @@ namespace Discore
         /// <para/>
         /// Only available if this message originated from a MessageCreate or MessageUpdate Gateway event.
         /// </summary>
-        public DiscordMessageMember Member { get; }
+        public DiscordMessageMember? Member { get; }
         /// <summary>
         /// Gets the contents of this message.
         /// </summary>
@@ -46,6 +51,7 @@ namespace Discore
         /// Gets whether or not this message mentioned everyone via @everyone.
         /// </summary>
         public bool MentionEveryone { get; }
+        // TODO: Make DiscordUserMention and add optional member field, see https://discordapp.com/developers/docs/resources/channel#message-object-message-structure
         /// <summary>
         /// Gets a list of all user-specific mentions in this message.
         /// </summary>
@@ -56,9 +62,8 @@ namespace Discore
         public IReadOnlyList<Snowflake> MentionedRoleIds { get; }
         /// <summary>
         /// Gets a list of all channels mentioned in this message.
-        /// May be null.
         /// <para/>
-        /// Note: This will only ever be set for crossposted messages.
+        /// Note: This will only ever be populated for crossposted messages.
         /// </summary>
         public IReadOnlyList<DiscordChannelMention> MentionedChannels { get; }
         /// <summary>
@@ -92,286 +97,120 @@ namespace Discore
         /// <summary>
         /// Gets the activity information for a Rich Presence-related chat message.
         /// </summary>
-        public DiscordMessageActivity Activity { get; }
+        public DiscordMessageActivity? Activity { get; }
         /// <summary>
         /// Gets the application information for a Rich Persence-related chat message.
         /// </summary>
-        public DiscordMessageApplication Application { get; }
+        public DiscordMessageApplication? Application { get; }
         /// <summary>
         /// Gets the reference data sent with crossposted messages.
         /// </summary>
-        public DiscordMessageReference MessageReference { get; }
+        public DiscordMessageReference? MessageReference { get; }
         /// <summary>
         /// Flags describing extra features of the message.
         /// </summary>
         public DiscordMessageFlags Flags { get; }
 
-        readonly DiscordHttpClient http;
-        readonly DiscordApiData originalData;
-
-        internal DiscordMessage(DiscordHttpClient http, DiscordApiData data)
-            : base(data)
+        internal DiscordMessage(JsonElement json)
+            : base(json)
         {
-            this.http = http;
-
-            originalData = data;
-
-            Content         = data.GetString("content");
-            Timestamp       = data.GetDateTime("timestamp").GetValueOrDefault();
-            EditedTimestamp = data.GetDateTime("edited_timestamp").GetValueOrDefault();
-            TextToSpeech    = data.GetBoolean("tts").GetValueOrDefault();
-            MentionEveryone = data.GetBoolean("mention_everyone").GetValueOrDefault();
-            Nonce           = data.GetSnowflake("nonce");
-            IsPinned        = data.GetBoolean("pinned").GetValueOrDefault();
-            ChannelId       = data.GetSnowflake("channel_id").GetValueOrDefault();
-            WebhookId       = data.GetSnowflake("webhook_id");
-            Type            = (DiscordMessageType)(data.GetInteger("type") ?? 0);
-            Flags           = (DiscordMessageFlags)(data.GetInteger("flags") ?? 0);
-
-            // Get author
-            DiscordApiData authorData = data.Get("author");
-            if (authorData != null)
-                Author = new DiscordUser(WebhookId.HasValue, authorData);
+            ChannelId = json.GetProperty("channel_id").GetSnowflake();
+            GuildId = json.GetPropertyOrNull("guild_id")?.GetSnowflake();
+            Author = new DiscordUser(json.GetProperty("user"));
+            Content = json.GetProperty("content").GetString();
+            Timestamp = json.GetProperty("timestamp").GetDateTime();
+            EditedTimestamp = json.GetProperty("edited_timestamp").GetDateTimeOrNull();
+            TextToSpeech = json.GetProperty("tts").GetBoolean();
+            MentionEveryone = json.GetProperty("mention_everyone").GetBoolean();
+            Nonce = json.GetPropertyOrNull("nonce")?.GetSnowflakeOrNull();
+            IsPinned = json.GetProperty("pinned").GetBoolean();
+            WebhookId = json.GetPropertyOrNull("webhook_id")?.GetSnowflake();
+            Type = (DiscordMessageType)json.GetProperty("type").GetInt32();
+            Flags = (DiscordMessageFlags)(json.GetPropertyOrNull("flags")?.GetInt32() ?? 0);
 
             // Get member
-            DiscordApiData memberData = data.Get("member");
-            if (memberData != null)
+            if (json.TryGetProperty("member", out JsonElement memberData))
                 Member = new DiscordMessageMember(memberData);
 
             // Get activity
-            DiscordApiData activityData = data.Get("activity");
-            if (activityData != null)
+            if (json.TryGetProperty("activity", out JsonElement activityData))
                 Activity = new DiscordMessageActivity(activityData);
 
             // Get application
-            DiscordApiData applicationData = data.Get("application");
-            if (applicationData != null)
+            if (json.TryGetProperty("application", out JsonElement applicationData))
                 Application = new DiscordMessageApplication(applicationData);
 
-            // Get reference
-            DiscordApiData messageReferenceData = data.Get("message_reference");
-            if (messageReferenceData != null)
+            // Get message reference
+            if (json.TryGetProperty("message_reference", out JsonElement messageReferenceData))
                 MessageReference = new DiscordMessageReference(messageReferenceData);
 
             // Get mentions
-            IList<DiscordApiData> mentionsArray = data.GetArray("mentions");
-            if (mentionsArray != null)
-            {
-                DiscordUser[] mentions = new DiscordUser[mentionsArray.Count];
+            JsonElement mentionsData = json.GetProperty("mentions");
+            var mentions = new DiscordUser[mentionsData.GetArrayLength()];
 
-                for (int i = 0; i < mentionsArray.Count; i++)
-                    mentions[i] = new DiscordUser(false, mentionsArray[i]);
+            for (int i = 0; i < mentions.Length; i++)
+                mentions[i] = new DiscordUser(mentionsData[i]);
 
-                Mentions = mentions;
-            }
+            Mentions = mentions;
 
             // Get mentioned roles
-            IList<DiscordApiData> mentionRolesArray = data.GetArray("mention_roles");
-            if (mentionRolesArray != null)
+            JsonElement mentionRolesData = json.GetProperty("mention_roles");
+            var mentionRoles = new Snowflake[mentionRolesData.GetArrayLength()];
+
+            for (int i = 0; i < mentionRoles.Length; i++)
+                mentionRoles[i] = mentionsData[i].GetSnowflake();
+
+            MentionedRoleIds = mentionRoles;
+
+            // Get mentioned channels
+            if (json.TryGetProperty("mention_channels", out JsonElement mentionChannelsData))
             {
-                Snowflake[] mentionedRoles = new Snowflake[mentionRolesArray.Count];
+                var mentionChannels = new DiscordChannelMention[mentionChannelsData.GetArrayLength()];
 
-                for (int i = 0; i < mentionRolesArray.Count; i++)
-                    mentionedRoles[i] = mentionRolesArray[i].ToSnowflake().Value;
+                for (int i = 0; i < mentionChannels.Length; i++)
+                    mentionChannels[i] = new DiscordChannelMention(mentionChannelsData[i]);
 
-                MentionedRoleIds = mentionedRoles;
+                MentionedChannels = mentionChannels;
             }
-
-            // Get channel mentions
-            IList<DiscordApiData> channelMentionsArray = data.GetArray("mention_channels");
-            if (channelMentionsArray != null)
+            else
             {
-                DiscordChannelMention[] mentions = new DiscordChannelMention[channelMentionsArray.Count];
-
-                for (int i = 0; i < channelMentionsArray.Count; i++)
-                    mentions[i] = new DiscordChannelMention(channelMentionsArray[i]);
-
-                MentionedChannels = mentions;
+                MentionedChannels = new DiscordChannelMention[0];
             }
 
             // Get attachments
-            IList<DiscordApiData> attachmentsArray = data.GetArray("attachments");
-            if (attachmentsArray != null)
-            {
-                DiscordAttachment[] attachments = new DiscordAttachment[attachmentsArray.Count];
+            JsonElement attachmentsData = json.GetProperty("attachments");
+            var attachments = new DiscordAttachment[attachmentsData.GetArrayLength()];
 
-                for (int i = 0; i < attachmentsArray.Count; i++)
-                    attachments[i] = new DiscordAttachment(attachmentsArray[i]);
+            for (int i = 0; i < attachments.Length; i++)
+                attachments[i] = new DiscordAttachment(attachmentsData[i]);
 
-                Attachments = attachments;
-            }
+            Attachments = attachments;
 
             // Get embeds
-            IList<DiscordApiData> embedsArray = data.GetArray("embeds");
-            if (embedsArray != null)
-            {
-                DiscordEmbed[] embeds = new DiscordEmbed[embedsArray.Count];
+            JsonElement embedsData = json.GetProperty("embeds");
+            var embeds = new DiscordEmbed[embedsData.GetArrayLength()];
 
-                for (int i = 0; i < embedsArray.Count; i++)
-                    embeds[i] = new DiscordEmbed(embedsArray[i]);
+            for (int i = 0; i < embeds.Length; i++)
+                embeds[i] = new DiscordEmbed(embedsData[i]);
 
-                Embeds = embeds;
-            }
+            Embeds = embeds;
 
             // Get reactions
-            IList<DiscordApiData> reactionsArray = data.GetArray("reactions");
-            if (reactionsArray != null)
+            if (json.TryGetProperty("reactions", out JsonElement reactionsData))
             {
-                DiscordReaction[] reactions = new DiscordReaction[reactionsArray.Count];
+                var reactions = new DiscordReaction[reactionsData.GetArrayLength()];
 
-                for (int i = 0; i < reactionsArray.Count; i++)
-                    reactions[i] = new DiscordReaction(reactionsArray[i]);
+                for (int i = 0; i < reactions.Length; i++)
+                    reactions[i] = new DiscordReaction(reactionsData[i]);
 
                 Reactions = reactions;
             }
-        }
-
-        /// <summary>
-        /// Updates a message with a newer partial version of the same message. This is primarily used
-        /// for obtaining the full message from a message update event, which only supplies the changes
-        /// rather than the full message.
-        /// </summary>
-        /// <exception cref="ArgumentException">Thrown if the IDs of each message do not match.</exception>
-        /// <exception cref="ArgumentNullException"></exception>
-        /// <exception cref="DiscordHttpApiException"></exception>
-        public static DiscordMessage Update(DiscordMessage message, DiscordMessage withPartial)
-        {
-            if (message == null)
-                throw new ArgumentNullException(nameof(message));
-            if (withPartial == null)
-                throw new ArgumentNullException(nameof(withPartial));
-
-            if (message.Id != withPartial.Id)
-                throw new ArgumentException("Cannot update one message with another. The message IDs must match.");
-
-            DiscordApiData updatedData = message.originalData.Clone();
-            updatedData.OverwriteUpdate(withPartial.originalData);
-
-            return new DiscordMessage(message.http, updatedData);
-        }
-
-        /// <summary>
-        /// Adds a reaction to this message.
-        /// <para>Requires <see cref="DiscordPermission.ReadMessageHistory"/>.</para>
-        /// <para>Requires <see cref="DiscordPermission.AddReactions"/> if nobody else has reacted to the message prior.</para>
-        /// </summary>
-        /// <exception cref="ArgumentNullException"></exception>
-        /// <exception cref="DiscordHttpApiException"></exception>
-        public Task CreateReaction(DiscordReactionEmoji emoji)
-        {
-            return http.CreateReaction(ChannelId, Id, emoji);
-        }
-
-        /// <summary>
-        /// Removes a reaction from this message added from the current bot.
-        /// </summary>
-        /// <exception cref="ArgumentNullException"></exception>
-        /// <exception cref="DiscordHttpApiException"></exception>
-        public Task DeleteOwnReaction(DiscordReactionEmoji reactionEmoji)
-        {
-            return http.DeleteOwnReaction(ChannelId, Id, reactionEmoji);
-        }
-
-        /// <summary>
-        /// Removes a reaction from this message.
-        /// <para>Requires <see cref="DiscordPermission.ManageMessages"/>.</para>
-        /// </summary>
-        /// <param name="user">The user who added the reacted.</param>
-        /// <param name="reactionEmoji"></param>
-        /// <exception cref="ArgumentNullException"></exception>
-        /// <exception cref="DiscordHttpApiException"></exception>
-        public Task DeleteUserReaction(DiscordUser user, DiscordReactionEmoji reactionEmoji)
-        {
-            if (user == null)
-                throw new ArgumentNullException(nameof(user));
-
-            return http.DeleteUserReaction(ChannelId, Id, user.Id, reactionEmoji);
-        }
-
-        /// <summary>
-        /// Removes a reaction from this message.
-        /// <para>Requires <see cref="DiscordPermission.ManageMessages"/>.</para>
-        /// </summary>
-        /// <param name="userId">The ID of the user who added the reacted.</param>
-        /// <param name="reactionEmoji"></param>
-        /// <exception cref="ArgumentNullException"></exception>
-        /// <exception cref="DiscordHttpApiException"></exception>
-        public Task DeleteUserReaction(Snowflake userId, DiscordReactionEmoji reactionEmoji)
-        {
-            return http.DeleteUserReaction(ChannelId, Id, userId, reactionEmoji);
-        }
-
-        /// <summary>
-        /// Gets all users who reacted with the specified emoji to this message.
-        /// </summary>
-        /// <exception cref="ArgumentNullException"></exception>
-        /// <exception cref="DiscordHttpApiException"></exception>
-        public Task<IReadOnlyList<DiscordUser>> GetReactions(DiscordReactionEmoji reactionEmoji)
-        {
-            return http.GetReactions(ChannelId, Id, reactionEmoji);
-        }
-
-        /// <summary>
-        /// Deletes all reactions to this message.
-        /// <para>Requires <see cref="DiscordPermission.ManageMessages"/>.</para>
-        /// </summary>
-        /// <exception cref="DiscordHttpApiException"></exception>
-        public Task DeleteAllReactions()
-        {
-            return http.DeleteAllReactions(ChannelId, Id);
-        }
-
-        /// <summary>
-        /// Pins this message to the channel it was sent in.
-        /// <para>Requires <see cref="DiscordPermission.ManageMessages"/>.</para>
-        /// </summary>
-        /// <exception cref="DiscordHttpApiException"></exception>
-        public Task Pin()
-        {
-            return http.AddPinnedChannelMessage(ChannelId, Id);
-        }
-
-        /// <summary>
-        /// Unpins this message from the channel it was sent in.
-        /// <para>Requires <see cref="DiscordPermission.ManageMessages"/>.</para>
-        /// </summary>
-        /// <exception cref="DiscordHttpApiException"></exception>
-        public Task Unpin()
-        {
-            return http.DeletePinnedChannelMessage(ChannelId, Id);
-        }
-
-        /// <summary>
-        /// Changes the contents of this message.
-        /// <para>Note: only messages created by the current bot can be editted.</para>
-        /// </summary>
-        /// <returns>Returns the editted message.</returns>
-        /// <exception cref="DiscordHttpApiException"></exception>
-        public Task<DiscordMessage> Edit(string newContent)
-        {
-            return http.EditMessage(ChannelId, Id, newContent);
-        }
-
-        /// <summary>
-        /// Changes the contents of this message.
-        /// <para>Note: only messages created by the current bot can be editted.</para>
-        /// </summary>
-        /// <returns>Returns the editted message.</returns>
-        /// <exception cref="ArgumentNullException"></exception>
-        /// <exception cref="DiscordHttpApiException"></exception>
-        public Task<DiscordMessage> Edit(EditMessageOptions options)
-        {
-            return http.EditMessage(ChannelId, Id, options);
-        }
-
-        /// <summary>
-        /// Deletes this message.
-        /// <para>Requires <see cref="DiscordPermission.ManageMessages"/>.</para>
-        /// </summary>
-        /// <exception cref="DiscordHttpApiException"></exception>
-        public Task Delete()
-        {
-            return http.DeleteMessage(ChannelId, Id);
+            else
+            {
+                Reactions = new DiscordReaction[0];
+            }
         }
     }
 }
+
+#nullable restore

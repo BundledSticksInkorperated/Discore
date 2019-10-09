@@ -1,5 +1,7 @@
 ﻿namespace Discore
 {
+    // TODO: Change this into an "activity" object: https://discordapp.com/developers/docs/topics/gateway#activity-object-activity-structure
+
     /// <summary>
     /// Representation of the game a user is currently playing.
     /// </summary>

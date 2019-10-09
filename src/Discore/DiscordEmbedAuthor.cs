@@ -26,26 +26,17 @@ namespace Discore
         /// </summary>
         public string? ProxyIconUrl { get; }
 
-        private DiscordEmbedAuthor(string? name, string? url, string? iconUrl, string? proxyIconUrl)
+        internal DiscordEmbedAuthor(JsonElement json)
         {
-            Name = name;
-            Url = url;
-            IconUrl = iconUrl;
-            ProxyIconUrl = proxyIconUrl;
+            Name = json.GetPropertyOrNull("name")?.GetString();
+            Url = json.GetPropertyOrNull("url")?.GetString();
+            IconUrl = json.GetPropertyOrNull("icon_url")?.GetString();
+            ProxyIconUrl = json.GetPropertyOrNull("proxy_icon_url")?.GetString();
         }
 
         public override string ToString()
         {
             return Name ?? base.ToString();
-        }
-
-        internal static DiscordEmbedAuthor FromJson(JsonElement json)
-        {
-            return new DiscordEmbedAuthor(
-                name: json.GetPropertyOrNull("name")?.GetString(),
-                url: json.GetPropertyOrNull("url")?.GetString(),
-                iconUrl: json.GetPropertyOrNull("icon_url")?.GetString(),
-                proxyIconUrl: json.GetPropertyOrNull("proxy_icon_url")?.GetString());
         }
     }
 }

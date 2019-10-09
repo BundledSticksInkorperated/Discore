@@ -1,6 +1,7 @@
-﻿using Discore.Http;
-using System;
-using System.Threading.Tasks;
+﻿using System;
+using System.Text.Json;
+
+#nullable enable
 
 namespace Discore
 {
@@ -9,6 +10,9 @@ namespace Discore
     /// </summary>
     public sealed class DiscordOverwrite : DiscordIdEntity
     {
+        /// <summary>
+        /// The ID of the channel this overwrite is for.
+        /// </summary>
         public Snowflake ChannelId { get; }
 
         /// <summary>
@@ -24,47 +28,18 @@ namespace Discore
         /// </summary>
         public DiscordPermission Deny { get; }
 
-        DiscordHttpClient http;
-
-        internal DiscordOverwrite(DiscordHttpClient http, Snowflake channelId, DiscordApiData data)
-            : base(data)
+        internal DiscordOverwrite(Snowflake channelId, JsonElement json)
+            : base(json)
         {
-            this.http = http;
-
             ChannelId = channelId;
 
-            string typeStr = data.GetString("type");
+            Allow = (DiscordPermission)json.GetProperty("allow").GetInt32();
+            Deny = (DiscordPermission)json.GetProperty("deny").GetInt32();
+
+            string typeStr = json.GetProperty("type").GetString();
             DiscordOverwriteType type;
-            if (Enum.TryParse(typeStr, true, out type))
+            if (Enum.TryParse(typeStr, ignoreCase: true, out type))
                 Type = type;
-
-            long allow = data.GetInt64("allow").Value;
-            Allow = (DiscordPermission)allow;
-
-            long deny = data.GetInt64("deny").Value;
-            Deny = (DiscordPermission)deny;
-        }
-
-        /// <summary>
-        /// Edits the permissions of this overwrite.
-        /// If successful, changes will be immediately reflected for this instance.
-        /// <para>Requires <see cref="DiscordPermission.ManageRoles"/>.</para>
-        /// </summary>
-        /// <exception cref="DiscordHttpApiException"></exception>
-        public Task Edit(DiscordPermission allow, DiscordPermission deny)
-        {
-            return http.EditChannelPermissions(ChannelId, Id, allow, deny, Type);
-        }
-
-        /// <summary>
-        /// Deletes this overwrite.
-        /// If successful, changes will be immediately reflected for the channel this overwrite was in.
-        /// <para>Requires <see cref="DiscordPermission.ManageRoles"/>.</para>
-        /// </summary>
-        /// <exception cref="DiscordHttpApiException"></exception>
-        public Task Delete()
-        {
-            return http.DeleteChannelPermission(ChannelId, Id);
         }
 
         public override string ToString()
@@ -73,3 +48,5 @@ namespace Discore
         }
     }
 }
+
+#nullable restore

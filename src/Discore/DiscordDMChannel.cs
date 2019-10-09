@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using System.Linq;
+﻿using System.Linq;
 using System.Text.Json;
 
 #nullable enable
@@ -21,30 +20,19 @@ namespace Discore
         /// </summary>
         public Snowflake? LastMessageId { get; }
 
-        private DiscordDMChannel(Snowflake id, DiscordUser recipient, Snowflake? lastMessageId) 
-            : base(id, DiscordChannelType.DirectMessage)
+        internal DiscordDMChannel(JsonElement json)
+            : base(DiscordChannelType.DirectMessage, json)
         {
-            Recipient = recipient;
-            LastMessageId = lastMessageId;
+            // Normal DM should only ever have exactly one recipient
+            JsonElement recipientData = json.GetProperty("recipients").EnumerateArray().First();
+            Recipient = new DiscordUser(recipientData);
+
+            LastMessageId = json.GetPropertyOrNull("last_message_id")?.GetSnowflakeOrNull();
         }
 
         public override string ToString()
         {
             return $"DM Channel: {Recipient}";
-        }
-
-        internal static DiscordDMChannel FromJson(JsonElement json)
-        {
-            Debug.Assert((DiscordChannelType)json.GetProperty("type").GetInt32() == DiscordChannelType.DirectMessage);
-
-            // Normal DM should only ever have exactly one recipient
-            JsonElement recipientData = json.GetProperty("recipients").EnumerateArray().First();
-            var recipient = DiscordUser.FromJson(recipientData);
-
-            return new DiscordDMChannel(
-                id: json.GetProperty("id").GetSnowflake(),
-                recipient: recipient,
-                lastMessageId: json.GetPropertyOrNull("last_message_id")?.GetSnowflakeOrNull());
         }
     }
 }

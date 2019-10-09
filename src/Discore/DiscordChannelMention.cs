@@ -21,21 +21,12 @@ namespace Discore
         /// </summary>
         public string Name { get; }
 
-        private DiscordChannelMention(Snowflake id, Snowflake guildId, DiscordChannelType type, string name)
-            : base(id)
+        internal DiscordChannelMention(JsonElement json)
+            : base(json)
         {
-            GuildId = guildId;
-            Type = type;
-            Name = name;
-        }
-
-        internal static DiscordChannelMention FromJson(JsonElement json)
-        {
-            return new DiscordChannelMention(
-                id: json.GetProperty("id").GetSnowflake(),
-                guildId: json.GetProperty("guild_id").GetSnowflake(),
-                type: (DiscordChannelType)json.GetProperty("type").GetInt32(),
-                name: json.GetProperty("name").GetString());
+            GuildId = json.GetProperty("guild_id").GetSnowflake();
+            Type = (DiscordChannelType)json.GetProperty("type").GetInt32();
+            Name = json.GetProperty("name").GetString();
         }
     }
 }

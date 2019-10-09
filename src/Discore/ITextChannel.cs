@@ -15,7 +15,7 @@ namespace Discore
         /// <summary>
         /// Gets the type of this channel.
         /// </summary>
-        DiscordChannelType ChannelType { get; }
+        DiscordChannelType Type { get; }
 
         /// <summary>
         /// Creates a message in this channel.

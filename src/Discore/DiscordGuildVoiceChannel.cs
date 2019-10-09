@@ -1,6 +1,6 @@
-﻿using Discore.Http;
-using System;
-using System.Threading.Tasks;
+﻿using System.Text.Json;
+
+#nullable enable
 
 namespace Discore
 {
@@ -16,34 +16,14 @@ namespace Discore
         /// </summary>
         public int UserLimit { get; }
 
-        /// <summary>
-        /// Gets the ID of the parent category channel or null if the channel is not in a category.
-        /// </summary>
-        public Snowflake? ParentId { get; }
-
-        DiscordHttpClient http;
-
-        internal DiscordGuildVoiceChannel(DiscordHttpClient http, DiscordApiData data, Snowflake? guildId = null)
-            : base(http, data, DiscordChannelType.GuildVoice, guildId)
+        /// <param name="guildId">If null, the guild ID will be pulled from the <paramref name="json"/>.</param>
+        internal DiscordGuildVoiceChannel(Snowflake? guildId, JsonElement json)
+            : base(DiscordChannelType.GuildVoice, guildId, json)
         {
-            this.http = http;
-
-            Bitrate = data.GetInteger("bitrate").Value;
-            UserLimit = data.GetInteger("user_limit").Value;
-            ParentId = data.GetSnowflake("parent_id");
-        }
-
-        /// <summary>
-        /// Modifies this voice channel's settings.
-        /// <para>Requires <see cref="DiscordPermission.ManageChannels"/>.</para>
-        /// </summary>
-        /// <param name="options">A set of options to modify the channel with</param>
-        /// <returns>Returns the updated voice channel.</returns>
-        /// <exception cref="ArgumentNullException"></exception>
-        /// <exception cref="DiscordHttpApiException"></exception>
-        public Task<DiscordGuildVoiceChannel> Modify(GuildVoiceChannelOptions options)
-        {
-            return http.ModifyVoiceChannel(Id, options);
+            Bitrate = json.GetProperty("bitrate").GetInt32();
+            UserLimit = json.GetProperty("user_limit").GetInt32();
         }
     }
 }
+
+#nullable restore

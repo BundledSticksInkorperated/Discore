@@ -5,6 +5,7 @@
     /// </summary>
     public enum DiscordOverwriteType
     {
+        Unknown,
         /// <summary>
         /// The overwrite is for a role.
         /// </summary>

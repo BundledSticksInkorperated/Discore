@@ -21,24 +21,16 @@ namespace Discore
         /// </summary>
         public int? Height { get; }
 
-        private DiscordEmbedVideo(string? url, int? width, int? height)
+        internal DiscordEmbedVideo(JsonElement json)
         {
-            Url = url;
-            Width = width;
-            Height = height;
+            Url = json.GetPropertyOrNull("url")?.GetString();
+            Width = json.GetPropertyOrNull("width")?.GetInt32();
+            Height = json.GetPropertyOrNull("height")?.GetInt32();
         }
 
         public override string ToString()
         {
             return Url ?? base.ToString();
-        }
-
-        internal static DiscordEmbedVideo FromJson(JsonElement json)
-        {
-            return new DiscordEmbedVideo(
-                url: json.GetPropertyOrNull("url")?.GetString(),
-                width: json.GetPropertyOrNull("width")?.GetInt32(),
-                height: json.GetPropertyOrNull("height")?.GetInt32());
         }
     }
 }

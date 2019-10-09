@@ -21,24 +21,16 @@ namespace Discore
         /// </summary>
         public bool IsInline { get; }
 
-        private DiscordEmbedField(string name, string value, bool isInline)
+        internal DiscordEmbedField(JsonElement json)
         {
-            Name = name;
-            Value = value;
-            IsInline = isInline;
+            Name = json.GetProperty("name").GetString();
+            Value = json.GetProperty("value").GetString();
+            IsInline = json.GetPropertyOrNull("inline")?.GetBoolean() ?? false;
         }
 
         public override string ToString()
         {
             return Name;
-        }
-
-        internal static DiscordEmbedField FromJson(JsonElement json)
-        {
-            return new DiscordEmbedField(
-                json.GetProperty("name").GetString(),
-                json.GetProperty("value").GetString(),
-                json.GetPropertyOrNull("inline")?.GetBoolean() ?? false);
         }
     }
 }

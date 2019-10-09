@@ -1,8 +1,8 @@
-﻿using Discore.Http;
-using Discore.WebSocket;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Threading.Tasks;
+using System.Text.Json;
+
+#nullable enable
 
 namespace Discore
 {
@@ -21,7 +21,7 @@ namespace Discore
         /// <summary>
         /// Gets the guild-wide nickname of the user.
         /// </summary>
-        public string Nickname { get; }
+        public string? Nickname { get; }
 
         /// <summary>
         /// Gets the IDs of all of the roles this member has.
@@ -29,9 +29,14 @@ namespace Discore
         public IReadOnlyList<Snowflake> RoleIds { get; }
 
         /// <summary>
-        /// Gets the time this member joined the guild.
+        /// Gets when this member joined the guild.
         /// </summary>
         public DateTime JoinedAt { get; }
+
+        /// <summary>
+        /// Gets when this member used their Nitro boost on the guild.
+        /// </summary>
+        public DateTime? PremiumSince { get; }
 
         /// <summary>
         /// Gets whether this member is deafened.
@@ -43,107 +48,51 @@ namespace Discore
         /// </summary>
         public bool IsMute { get; }
 
-        readonly DiscordHttpClient http;
-
-        internal DiscordGuildMember(DiscordHttpClient http, MutableGuildMember member)
+        private DiscordGuildMember(
+            Snowflake guildId,
+            DiscordUser user,
+            string? nickname,
+            IReadOnlyList<Snowflake> roleIds,
+            DateTime joinedAt,
+            DateTime? premiumSince,
+            bool isDeaf,
+            bool isMute)
+            : base(user.Id)
         {
-            this.http = http;
-
-            GuildId = member.GuildId;
-
-            User = member.User.ImmutableEntity;
-
-            Nickname = member.Nickname;
-            JoinedAt = member.JoinedAt;
-            IsDeaf = member.IsDeaf;
-            IsMute = member.IsMute;
-
-            RoleIds = new List<Snowflake>(member.RoleIds);
-
-            Id = member.User.Id;
-        }
-
-        internal DiscordGuildMember(DiscordHttpClient http, DiscordApiData data, Snowflake guildId)
-            // We do not specify the base constructor here because the member ID must be
-            // manually retrieved, as it is actually the user ID rather than a unique one.
-        {
-            this.http = http;
-
-            GuildId = GuildId;
-
-            Nickname = data.GetString("nick");
-            JoinedAt = data.GetDateTime("joined_at").Value;
-            IsDeaf = data.GetBoolean("deaf") ?? false;
-            IsMute = data.GetBoolean("mute") ?? false;
-
-            IList<DiscordApiData> rolesArray = data.GetArray("roles");
-            Snowflake[] roleIds = new Snowflake[rolesArray.Count];
-
-            for (int i = 0; i < rolesArray.Count; i++)
-                roleIds[i] = rolesArray[i].ToSnowflake().Value;
-
+            GuildId = guildId;
+            User = user;
+            Nickname = nickname;
             RoleIds = roleIds;
-
-            DiscordApiData userData = data.Get("user");
-            User = new DiscordUser(false, userData);
-
-            Id = User.Id;
-        }
-
-        /// <summary>
-        /// Modifies the attributes of this member.
-        /// </summary>
-        /// <exception cref="ArgumentNullException"></exception>
-        /// <exception cref="DiscordHttpApiException"></exception>
-        public Task Modify(ModifyGuildMemberOptions options)
-        {
-            return http.ModifyGuildMember(GuildId, Id, options);
-        }
-
-        /// <summary>
-        /// Removes this user from the guild they are a member of.
-        /// <para>Requires <see cref="DiscordPermission.KickMembers"/>.</para>
-        /// </summary>
-        /// <exception cref="DiscordHttpApiException"></exception>
-        public Task Kick()
-        {
-            return http.RemoveGuildMember(GuildId, Id);
-        }
-
-        /// <summary>
-        /// Bans this user from the guild they are a member of.
-        /// <para>Requires <see cref="DiscordPermission.BanMembers"/>.</para>
-        /// </summary>
-        /// <param name="deleteMessageDays">Number of days to delete messages for (0-7) or null to delete none.</param>
-        /// <exception cref="DiscordHttpApiException"></exception>
-        public Task Ban(int? deleteMessageDays = null)
-        {
-            return http.CreateGuildBan(GuildId, Id, deleteMessageDays);
-        }
-
-        /// <summary>
-        /// Adds a role to this member.
-        /// <para>Requires <see cref="DiscordPermission.ManageRoles"/>.</para>
-        /// </summary>
-        /// <exception cref="DiscordHttpApiException"></exception>
-        public Task AddRole(Snowflake roleId)
-        {
-            return http.AddGuildMemberRole(GuildId, Id, roleId);
-        }
-
-        /// <summary>
-        /// Removes a role from this member.
-        /// <para>Requires <see cref="DiscordPermission.ManageRoles"/>.</para>
-        /// </summary>
-        /// <exception cref="DiscordHttpApiException"></exception>
-        public Task RemoveRole(Snowflake roleId)
-        {
-            return http.RemoveGuildMemberRole(GuildId, Id, roleId);
+            JoinedAt = joinedAt;
+            PremiumSince = premiumSince;
+            IsDeaf = isDeaf;
+            IsMute = isMute;
         }
 
         public override string ToString()
         {
             return Nickname != null ? $"{User.Username} aka. {Nickname}" : User.Username;
         }
+
+        internal static DiscordGuildMember FromJson(Snowflake guildId, JsonElement json)
+        {
+            JsonElement rolesData = json.GetProperty("roles");
+            var roleIds = new Snowflake[rolesData.GetArrayLength()];
+
+            for (int i = 0; i < roleIds.Length; i++)
+                roleIds[i] = rolesData[i].GetSnowflake();
+
+            return new DiscordGuildMember(
+                guildId: guildId,
+                user: DiscordUser.FromJson(json.GetProperty("user")),
+                nickname: json.GetPropertyOrNull("nick")?.GetString(),
+                roleIds: roleIds,
+                joinedAt: json.GetProperty("joined_at").GetDateTime(),
+                premiumSince: json.GetPropertyOrNull("premium_since")?.GetDateTime(),
+                isDeaf: json.GetProperty("deaf").GetBoolean(),
+                isMute: json.GetProperty("mute").GetBoolean());
+        }
     }
 }
+
+#nullable restore

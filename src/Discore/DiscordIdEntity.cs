@@ -1,6 +1,7 @@
 ﻿#nullable enable
 
 using System;
+using System.Text.Json;
 
 namespace Discore
 {
@@ -23,6 +24,11 @@ namespace Discore
         private protected DiscordIdEntity(Snowflake id)
         {
             Id = id;
+        }
+
+        private protected DiscordIdEntity(JsonElement json)
+        {
+            Id = json.GetProperty("id").GetSnowflake();
         }
 
         public override string ToString()

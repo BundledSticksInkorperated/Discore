@@ -1,8 +1,12 @@
-﻿using Discore.Http;
-using System;
+﻿using System;
+using System.Text.Json;
+
+#nullable enable
 
 namespace Discore
 {
+    // TODO: Consider renaming to DiscordInviteWithMetadata
+
     public sealed class DiscordInviteMetadata : DiscordInvite
     {
         /// <summary>
@@ -35,24 +39,17 @@ namespace Discore
         /// </summary>
         public DateTime CreatedAt { get; }
 
-        /// <summary>
-        /// Gets whether this invite has been revoked.
-        /// </summary>
-        public bool IsRevoked { get; }
-
-        internal DiscordInviteMetadata(DiscordHttpClient http, DiscordApiData data)
-            : base(http, data)
+        internal DiscordInviteMetadata(JsonElement json)
+            : base(json)
         {
-            DiscordApiData inviterData = data.Get("inviter");
-            if (inviterData != null)
-                Inviter = new DiscordUser(false, inviterData);
-
-            Uses = data.GetInteger("uses").Value;
-            MaxUses = data.GetInteger("max_uses").Value;
-            MaxAge = data.GetInteger("max_age").Value;
-            IsTemporary = data.GetBoolean("temporary").Value;
-            CreatedAt = data.GetDateTime("created_at").Value;
-            IsRevoked = data.GetBoolean("revoked") ?? false;
+            Inviter = new DiscordUser(json.GetProperty("inviter"));
+            Uses = json.GetProperty("uses").GetInt32();
+            MaxUses = json.GetProperty("max_uses").GetInt32();
+            MaxAge = json.GetProperty("max_age").GetInt32();
+            IsTemporary = json.GetProperty("temporary").GetBoolean();
+            CreatedAt = json.GetProperty("created_at").GetDateTime();
         }
     }
 }
+
+#nullable restore

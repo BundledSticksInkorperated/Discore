@@ -1,9 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Text.Json;
+
+#nullable enable
 
 namespace Discore
 {
-    public class DiscordMessageMember
+    public sealed class DiscordMessageMember
     {
         /// <summary>
         /// Gets the IDs of all of the roles this member has.
@@ -13,7 +16,7 @@ namespace Discore
         /// <summary>
         /// Gets the guild-wide nickname of the user.
         /// </summary>
-        public string Nickname { get; }
+        public string? Nickname { get; }
 
         /// <summary>
         /// Gets the time this member joined the guild.
@@ -30,23 +33,22 @@ namespace Discore
         /// </summary>
         public bool IsMute { get; }
 
-        internal DiscordMessageMember(DiscordApiData data)
+        internal DiscordMessageMember(JsonElement json)
         {
-            Nickname = data.GetString("nick");
-            JoinedAt = data.GetDateTime("joined_at").Value;
-            IsDeaf = data.GetBoolean("deaf") ?? false;
-            IsMute = data.GetBoolean("mute") ?? false;
+            Nickname = json.GetPropertyOrNull("nick")?.GetString();
+            JoinedAt = json.GetProperty("joined_at").GetDateTime();
+            IsDeaf = json.GetProperty("deaf").GetBoolean();
+            IsMute = json.GetProperty("mute").GetBoolean();
 
-            IList<DiscordApiData> rolesArray = data.GetArray("roles");
-            if (rolesArray != null)
-            {
-                Snowflake[] roleIds = new Snowflake[rolesArray.Count];
+            JsonElement rolesData = json.GetProperty("roles");
+            var roleIds = new Snowflake[rolesData.GetArrayLength()];
 
-                for (int i = 0; i < rolesArray.Count; i++)
-                    roleIds[i] = rolesArray[i].ToSnowflake().Value;
+            for (int i = 0; i < roleIds.Length; i++)
+                roleIds[i] = rolesData[i].GetSnowflake();
 
-                RoleIds = roleIds;
-            }
+            RoleIds = roleIds;
         }
     }
 }
+
+#nullable restore

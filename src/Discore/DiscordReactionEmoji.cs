@@ -16,6 +16,8 @@ namespace Discore
         /// </summary>
         public string Name { get; }
 
+        // TODO: Review usage of these public constructors
+
         public DiscordReactionEmoji(string name)
         {
             Name = name;
@@ -27,16 +29,15 @@ namespace Discore
             Id = id;
         }
 
+        internal DiscordReactionEmoji(JsonElement json)
+        {
+            Id = json.GetProperty("id").GetSnowflakeOrNull();
+            Name = json.GetProperty("name").GetString();
+        }
+
         public override string ToString()
         {
             return Id.HasValue ? $"{Name}:{Id.Value}" : Name;
-        }
-
-        internal static DiscordReactionEmoji FromJson(JsonElement json)
-        {
-            return new DiscordReactionEmoji(
-                id: json.GetProperty("id").GetSnowflakeOrNull(),
-                name: json.GetProperty("name").GetString());
         }
     }
 }
